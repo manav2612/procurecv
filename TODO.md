@@ -10,11 +10,11 @@ Checklist form of `PLAN.md`. Check items off as they're completed.
 - [x] `.gitignore` (Python, Node, env files, model weights cache)
 
 ## Phase 2 — Backend skeleton
-- [ ] FastAPI app scaffold (`backend/app/main.py`)
-- [ ] SQLAlchemy models: `Session`, `TranscriptSegment`
-- [ ] Alembic setup + initial migration
-- [ ] REST CRUD: `GET/POST /api/sessions`, `GET/PUT/DELETE /api/sessions/{id}`, `GET/PUT/DELETE /api/segments/{id}`
-- [ ] Local Postgres via docker-compose for dev
+- [x] FastAPI app scaffold (`backend/app/main.py`)
+- [x] SQLAlchemy models: `TranscriptionSession` (table `sessions`), `TranscriptSegment`
+- [x] Alembic setup + initial migration (generated/verified against SQLite — no Docker in this sandbox; re-verify against real Postgres when available)
+- [x] REST CRUD: `GET/POST /api/sessions`, `GET/PUT/DELETE /api/sessions/{id}`, `POST /api/sessions/{id}/segments`, `PUT/DELETE /api/segments/{id}`
+- [x] Local Postgres via docker-compose for dev (`docker-compose.yml`, untested locally — no Docker in this sandbox)
 
 ## Phase 3 — STT integration
 - [ ] Install & smoke-test `faster-whisper` standalone on a sample WAV file
