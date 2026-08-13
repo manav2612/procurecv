@@ -3,11 +3,11 @@
 Checklist form of `PLAN.md`. Check items off as they're completed.
 
 ## Phase 1 — Scaffolding
-- [ ] `git init`, initial commit
-- [ ] `CLAUDE.md` (project purpose, stack, structure, conventions)
-- [ ] `/checkpoint` skill (`git add -A && git commit -m "checkpoint: <label|timestamp>"`)
-- [ ] Repo layout: `backend/`, `frontend/`, top-level `README.md`
-- [ ] `.gitignore` (Python, Node, env files, model weights cache)
+- [x] `git init`, initial commit
+- [x] `CLAUDE.md` (project purpose, stack, structure, conventions)
+- [x] `/checkpoint` skill (`git add -A && git commit -m "checkpoint: <label|timestamp>"`)
+- [x] Repo layout: `backend/`, `frontend/`, top-level `README.md`
+- [x] `.gitignore` (Python, Node, env files, model weights cache)
 
 ## Phase 2 — Backend skeleton
 - [ ] FastAPI app scaffold (`backend/app/main.py`)
