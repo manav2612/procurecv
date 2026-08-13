@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# Node / frontend
+node_modules/
+dist/
+build/
+.vite/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Model weights / caches
+*.pt
+*.bin
+*.onnx
+models/
+.cache/
+whisper_cache/
+
+# DB
+*.sqlite3
+pgdata/
+
+# OS / editor
+.DS_Store
+*.log
