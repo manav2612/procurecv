@@ -1,8 +1,9 @@
 import asyncio
+import json
 import logging
 import time
 
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, WebSocket
 from sqlalchemy.orm import Session as DBSession
 
 from app import crud, schemas
@@ -20,12 +21,22 @@ async def websocket_transcribe(
 ):
     """Streaming transcription over a WebSocket.
 
-    Protocol: client sends one self-contained audio blob per message (e.g. a
-    few seconds of WebM/Opus or WAV from MediaRecorder — each chunk must
-    decode independently, since chunks are transcribed one at a time). Server
-    replies with one JSON message per finalized segment:
-    {"type": "final", "id", "text", "start_ts", "end_ts", "confidence"}, or
-    {"type": "error", "detail"} if a chunk fails to transcribe.
+    Protocol (JSON control/status messages, binary audio):
+      server -> client, right after accept: {"type": "ready", "session_id", "language_hint"}
+      client -> server: one self-contained audio blob per binary message (e.g.
+        a few seconds of WebM/Opus from MediaRecorder — each chunk must
+        decode independently, since chunks are transcribed one at a time)
+      client -> server (text): {"type": "ping"} -> server replies {"type": "pong"}
+        (heartbeat, keeps the connection alive through idle proxies)
+      client -> server (text): {"type": "stop"} -> server closes the loop
+      server -> client, per chunk received: {"type": "processing"}, then zero
+        or more {"type": "final", "id", "text", "start_ts", "end_ts",
+        "confidence"} (one per transcribed segment), then always
+        {"type": "chunk_done", "segment_count"} so the client can reliably
+        track "how many chunks are still in flight" regardless of whether a
+        chunk produced any text (e.g. it was silence)
+      server -> client, on a chunk that fails to transcribe: {"type": "error",
+        "detail"} followed by {"type": "chunk_done", "segment_count": 0}
 
     start_ts/end_ts are approximated as wall-clock-elapsed-since-connect at
     the moment each chunk arrives, plus the segment's offset within that
@@ -47,16 +58,28 @@ async def websocket_transcribe(
     language_hint = session.language_hint
     connected_at = time.monotonic()
 
-    try:
-        while True:
-            chunk = await websocket.receive_bytes()
+    await websocket.send_json(
+        {"type": "ready", "session_id": session_id, "language_hint": language_hint}
+    )
+
+    while True:
+        message = await websocket.receive()
+        if message["type"] == "websocket.disconnect":
+            break
+
+        audio_bytes = message.get("bytes")
+        text_payload = message.get("text")
+
+        if audio_bytes is not None:
             chunk_offset = time.monotonic() - connected_at
+            await websocket.send_json({"type": "processing"})
 
             try:
-                segments = await asyncio.to_thread(transcribe_chunk, chunk, language_hint)
+                segments = await asyncio.to_thread(transcribe_chunk, audio_bytes, language_hint)
             except Exception:
                 logger.exception("Transcription failed for session %s", session_id)
                 await websocket.send_json({"type": "error", "detail": "transcription failed"})
+                await websocket.send_json({"type": "chunk_done", "segment_count": 0})
                 continue
 
             for seg in segments:
@@ -80,5 +103,15 @@ async def websocket_transcribe(
                         "confidence": db_segment.confidence,
                     }
                 )
-    except WebSocketDisconnect:
-        pass
+            await websocket.send_json({"type": "chunk_done", "segment_count": len(segments)})
+
+        elif text_payload is not None:
+            try:
+                control = json.loads(text_payload)
+            except ValueError:
+                continue
+            control_type = control.get("type")
+            if control_type == "ping":
+                await websocket.send_json({"type": "pong"})
+            elif control_type == "stop":
+                break

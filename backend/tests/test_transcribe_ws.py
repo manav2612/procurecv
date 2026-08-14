@@ -13,24 +13,39 @@ FIXTURE = Path(__file__).parent / "fixtures" / "english.mp3"
 
 
 @pytest.mark.slow
-def test_websocket_transcribes_and_persists_segment(client):
+def test_websocket_handshake_transcribes_and_persists_segment(client):
     create_resp = client.post("/api/sessions", json={"language_hint": "en"})
     session_id = create_resp.json()["id"]
 
     audio_bytes = FIXTURE.read_bytes()
 
     with client.websocket_connect(f"/ws/transcribe/{session_id}") as ws:
-        ws.send_bytes(audio_bytes)
-        message = ws.receive_json()
+        ready = ws.receive_json()
+        assert ready == {"type": "ready", "session_id": session_id, "language_hint": "en"}
 
-    assert message["type"] == "final"
-    assert "test" in message["text"].lower()
-    assert message["confidence"] > 0
+        ws.send_bytes(audio_bytes)
+
+        messages = []
+        while True:
+            msg = ws.receive_json()
+            messages.append(msg)
+            if msg["type"] == "chunk_done":
+                break
+
+        ws.send_json({"type": "ping"})
+        assert ws.receive_json() == {"type": "pong"}
+
+    assert messages[0]["type"] == "processing"
+    finals = [m for m in messages if m["type"] == "final"]
+    assert len(finals) == 1
+    assert "test" in finals[0]["text"].lower()
+    assert finals[0]["confidence"] > 0
+    assert messages[-1] == {"type": "chunk_done", "segment_count": 1}
 
     session_resp = client.get(f"/api/sessions/{session_id}")
     segments = session_resp.json()["segments"]
     assert len(segments) == 1
-    assert segments[0]["text"] == message["text"]
+    assert segments[0]["text"] == finals[0]["text"]
 
 
 @pytest.mark.slow

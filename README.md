@@ -40,13 +40,31 @@ pytest -m slow
 ### Real-time transcription (WebSocket)
 
 `ws://localhost:8000/ws/transcribe/{session_id}` — create a session via
-`POST /api/sessions` first, then connect. Send one self-contained audio blob
-per WebSocket message (e.g. a few seconds of WAV/WebM from the browser's
-`MediaRecorder`); the server replies with one JSON message per finalized
-segment: `{"type": "final", "id", "text", "start_ts", "end_ts", "confidence"}`,
-persisting each segment to the DB as it's produced. See
-`backend/app/routers/transcribe.py` for the full protocol notes and known
-approximations (timestamps are wall-clock-based, not sample-accurate).
+`POST /api/sessions` first, then connect. Protocol:
+
+1. Server sends `{"type": "ready", "session_id", "language_hint"}` once it's
+   accepted the connection and confirmed the session exists.
+2. Client sends one self-contained audio blob per binary message (each chunk
+   must decode independently — see the frontend's VAD-based chunking below).
+3. Per chunk, server sends `{"type": "processing"}`, then zero or more
+   `{"type": "final", "id", "text", "start_ts", "end_ts", "confidence"}`
+   (persisted to the DB as each is produced), then always
+   `{"type": "chunk_done", "segment_count"}` — so the client can reliably
+   track in-flight chunks even when one produces no text (e.g. silence).
+4. Client can send `{"type": "ping"}` any time -> server replies
+   `{"type": "pong"}` (heartbeat, keeps idle connections/proxies alive).
+   `{"type": "stop"}` ends the loop from the client side.
+
+See `backend/app/routers/transcribe.py` for the full protocol docstring and
+known approximations (timestamps are wall-clock-based, not sample-accurate).
+
+The frontend doesn't chunk on a blind fixed timer — `useTranscription.ts`
+watches mic energy (RMS via `AnalyserNode`) and cuts a chunk when the speaker
+pauses (or after a max-duration cap for long uninterrupted speech), so short
+utterances get sent — and transcribed — as soon as you stop talking, instead
+of waiting out a fixed interval. See that file's top comment for the exact
+thresholds and the honest caveat that they're tuned by guess, not measured
+against real hardware.
 
 The Whisper model size defaults to `small` (set `WHISPER_MODEL_SIZE` env var
 to override) — benchmarked against `tiny`/`base` on this CPU, `small` is the
@@ -82,11 +100,7 @@ Honest caveats (no display/mic/Docker in this dev sandbox):
   dialect-agnostic but hasn't been run against real Postgres yet.
 
 Exercise the app in an actual browser with a real Postgres instance before
-considering it fully verified end-to-end.
-
-Note: this dev sandbox has no Docker available, so the backend was validated
-against an in-memory SQLite DB via the test suite rather than a live Postgres
-instance. The generated Alembic migration uses dialect-agnostic SQLAlchemy
-Core operations, so it applies the same way against Postgres — but running
-it against real Postgres once Docker/a DB is available is worth doing before
-you consider this phase fully verified end-to-end.
+considering it fully verified end-to-end. The generated Alembic migration
+uses dialect-agnostic SQLAlchemy Core operations, so it should apply the
+same way against Postgres as it did against SQLite — but that's still
+unverified against a real Postgres instance.

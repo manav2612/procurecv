@@ -24,10 +24,10 @@ Checklist form of `PLAN.md`. Check items off as they're completed.
 
 ## Phase 4 — Frontend: live transcription
 - [x] Vite + React + TS scaffold
-- [x] Mic capture via `MediaRecorder`, chunked upload (4s, one recorder instance per chunk — see `useTranscription.ts` for why)
-- [x] WebSocket client, live transcript display
-- [x] Session start/stop controls
-- Note: build/typecheck/lint all pass and the dev server was smoke-tested, but the actual mic-recording flow hasn't been exercised in a real browser (no display/mic in this dev sandbox) — verify that before considering this phase fully done.
+- [x] Mic capture via `MediaRecorder`, VAD-based chunking (cuts on speech pauses, not a blind timer — one fresh recorder instance per chunk; see `useTranscription.ts` for why)
+- [x] WebSocket client with a proper handshake (`ready`/`processing`/`chunk_done`/`ping`-`pong`), live transcript display
+- [x] Session start/stop controls, with live "listening / hearing you / transcribing" status indicator
+- Verified: full protocol sequence (ready -> processing -> final -> chunk_done -> ping/pong) confirmed against the live running backend with a real Node WebSocket client sending real audio — not just unit tests. The dashboard's session CRUD was also exercised live through the browser during manual verification. Actual mic capture (MediaRecorder + VAD thresholds) still hasn't been exercised with a real microphone in this environment — no audio input device here — so the VAD thresholds are unvalidated against real hardware/room noise.
 
 ## Phase 5 — Frontend: dashboard
 - [x] List view of past sessions/transcriptions (expand a session to load its segments)

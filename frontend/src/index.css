@@ -130,6 +130,39 @@ textarea {
   font-size: 14px;
 }
 
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+  background: var(--text-dim);
+}
+
+.status-dot.idle {
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+.status-dot.speaking {
+  background: var(--accent);
+  animation: pulse 0.6s ease-in-out infinite;
+}
+
+.status-dot.busy {
+  background: var(--accent);
+  opacity: 0.7;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 .error {
   color: var(--danger);
   font-size: 14px;

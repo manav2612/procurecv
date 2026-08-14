@@ -8,7 +8,8 @@ export function Recorder() {
   const [languageHint, setLanguageHint] = useState("");
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
-  const { segments, isRecording, error, start, stop } = useTranscription(WS_BASE);
+  const { segments, isRecording, isSpeaking, pendingChunks, error, start, stop } =
+    useTranscription(WS_BASE);
 
   const handleStart = async () => {
     setBusy(true);
@@ -30,6 +31,14 @@ export function Recorder() {
       api.updateSession(session.id, { status: "completed" }).catch(() => {});
     }
   };
+
+  const statusLabel = !isRecording
+    ? null
+    : isSpeaking
+      ? "Hearing you…"
+      : pendingChunks > 0
+        ? "Transcribing…"
+        : "Listening…";
 
   return (
     <div className="recorder">
@@ -56,7 +65,14 @@ export function Recorder() {
 
       {session && (
         <p className="session-id">
-          Session #{session.id} — {isRecording ? "recording…" : "stopped"}
+          Session #{session.id}
+          {statusLabel && (
+            <>
+              {" — "}
+              <span className={`status-dot ${isSpeaking ? "speaking" : pendingChunks > 0 ? "busy" : "idle"}`} />
+              {statusLabel}
+            </>
+          )}
         </p>
       )}
 
