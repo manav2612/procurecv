@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { Session, SessionWithSegments } from "../types";
 import { SegmentList } from "./SegmentList";
+import { useToast } from "./Toaster";
 
 export function Dashboard() {
+  const { toast, confirmToast } = useToast();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,13 +48,15 @@ export function Dashboard() {
   };
 
   const handleDeleteSession = async (id: number) => {
-    if (!confirm("Delete this session and all its transcript segments?")) return;
+    const confirmed = await confirmToast("Delete this session and all its transcript segments?");
+    if (!confirmed) return;
     await api.deleteSession(id);
     if (expandedId === id) {
       setExpandedId(null);
       setExpanded(null);
     }
     refresh();
+    toast("Session deleted");
   };
 
   const filtered = sessions.filter((session) => {
