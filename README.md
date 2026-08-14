@@ -7,7 +7,13 @@ transcription-history dashboard — built for the Procucev AI Tech hiring assign
 - **Frontend**: React + TypeScript (Vite)
 
 See [`PLAN.md`](./PLAN.md) for the architecture and [`TODO.md`](./TODO.md) for
-current progress.
+current progress. [`architecture.excalidraw`](./architecture.excalidraw) is a
+minimal, editable visual map of the same architecture (open at
+[excalidraw.com](https://excalidraw.com) via File → Open, or the VS Code
+Excalidraw extension) — which files do what, the request/data flow, and the
+key design decisions (why VAD-based chunking, why one locked model instance,
+why `small` over `tiny`/`base`) as annotated sticky notes, not just a box
+diagram.
 
 ## Backend setup
 
