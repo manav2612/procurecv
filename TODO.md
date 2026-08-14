@@ -23,10 +23,11 @@ Checklist form of `PLAN.md`. Check items off as they're completed.
 - [x] Persist finalized segments to DB as they're produced, streamed back to client as JSON (real-time "partial" streaming mid-chunk not implemented — only per-chunk finals; noted as a partial-completion tradeoff)
 
 ## Phase 4 — Frontend: live transcription
-- [ ] Vite + React + TS scaffold
-- [ ] Mic capture via `MediaRecorder`, chunked upload (~3s)
-- [ ] WebSocket client, live transcript display
-- [ ] Session start/stop controls
+- [x] Vite + React + TS scaffold
+- [x] Mic capture via `MediaRecorder`, chunked upload (4s, one recorder instance per chunk — see `useTranscription.ts` for why)
+- [x] WebSocket client, live transcript display
+- [x] Session start/stop controls
+- Note: build/typecheck/lint all pass and the dev server was smoke-tested, but the actual mic-recording flow hasn't been exercised in a real browser (no display/mic in this dev sandbox) — verify that before considering this phase fully done.
 
 ## Phase 5 — Frontend: dashboard
 - [ ] List view of past sessions/transcriptions

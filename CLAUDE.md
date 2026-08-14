@@ -24,7 +24,7 @@ working vertical slice over polish.
 
 ```
 backend/     FastAPI app, SQLAlchemy models, Alembic migrations, faster-whisper integration
-frontend/    React + TS app (mic capture, live transcript view, CRUD dashboard)
+frontend/    React + TS app (Vite) — mic capture, live transcript view, CRUD dashboard
 PLAN.md      Architecture and phased implementation plan
 TODO.md      Granular checklist, mirrors PLAN.md phases
 ```

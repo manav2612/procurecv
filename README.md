@@ -54,11 +54,28 @@ only one that reliably transcribes Hindi into correct Devanagari instead of
 mis-scripted gibberish; the tradeoff is a few seconds of latency per chunk
 (near-real-time, not sub-second). See `PLAN.md`'s "known tradeoffs" section.
 
+## Frontend setup
+
+See `frontend/README.md`. Quick start:
+
+```bash
+cd frontend
+npm install
+cp .env.example .env
+npm run dev   # http://localhost:5173 — expects the backend running on :8000
+```
+
 ## Status
 
-Phase 1 (scaffolding), Phase 2 (backend skeleton), and Phase 3 (STT
-integration: `faster-whisper`, WebSocket streaming endpoint) are done. The
-frontend is not built yet — see `TODO.md`.
+Phase 1 (scaffolding), Phase 2 (backend skeleton), Phase 3 (STT integration),
+and Phase 4 (frontend live transcription UI) are done. The CRUD dashboard UI
+(Phase 5) is not built yet — see `TODO.md`.
+
+Honest caveat on Phase 4: the mic-recording flow was verified via build,
+typecheck, lint, and a dev-server smoke test (not a live browser session
+with real mic input — this dev sandbox has no display/audio device). Worth
+exercising "Start Recording" in an actual browser before you consider it
+fully verified end-to-end.
 
 Note: this dev sandbox has no Docker available, so the backend was validated
 against an in-memory SQLite DB via the test suite rather than a live Postgres
