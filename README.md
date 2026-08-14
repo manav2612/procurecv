@@ -67,15 +67,22 @@ npm run dev   # http://localhost:5173 — expects the backend running on :8000
 
 ## Status
 
-Phase 1 (scaffolding), Phase 2 (backend skeleton), Phase 3 (STT integration),
-and Phase 4 (frontend live transcription UI) are done. The CRUD dashboard UI
-(Phase 5) is not built yet — see `TODO.md`.
+Phases 1-5 are done: scaffolding, backend skeleton, STT integration,
+live-transcription frontend, and the CRUD dashboard. Remaining work is
+multilingual validation and deployment — see `TODO.md`.
 
-Honest caveat on Phase 4: the mic-recording flow was verified via build,
-typecheck, lint, and a dev-server smoke test (not a live browser session
-with real mic input — this dev sandbox has no display/audio device). Worth
-exercising "Start Recording" in an actual browser before you consider it
-fully verified end-to-end.
+Honest caveats (no display/mic/Docker in this dev sandbox):
+- **Mic recording (Phase 4)**: verified via build, typecheck, lint, and a
+  dev-server smoke test — not a live browser session with real mic input.
+- **Dashboard (Phase 5)**: the REST contract it depends on was verified
+  end-to-end against a live backend via curl (create → nested-get → update →
+  delete, matching `types.ts` exactly); the UI itself hasn't been clicked
+  through in a real browser.
+- **Postgres**: all backend testing used SQLite; the Alembic migration is
+  dialect-agnostic but hasn't been run against real Postgres yet.
+
+Exercise the app in an actual browser with a real Postgres instance before
+considering it fully verified end-to-end.
 
 Note: this dev sandbox has no Docker available, so the backend was validated
 against an in-memory SQLite DB via the test suite rather than a live Postgres

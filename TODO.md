@@ -30,10 +30,15 @@ Checklist form of `PLAN.md`. Check items off as they're completed.
 - Note: build/typecheck/lint all pass and the dev server was smoke-tested, but the actual mic-recording flow hasn't been exercised in a real browser (no display/mic in this dev sandbox) — verify that before considering this phase fully done.
 
 ## Phase 5 — Frontend: dashboard
-- [ ] List view of past sessions/transcriptions
-- [ ] Search/filter
-- [ ] Edit transcript text (PUT)
-- [ ] Delete session/segment (DELETE)
+- [x] List view of past sessions/transcriptions (expand a session to load its segments)
+- [x] Search/filter (client-side, by session id/language/status)
+- [x] Edit transcript text (PUT)
+- [x] Delete session/segment (DELETE)
+- Verified: full CRUD lifecycle smoke-tested against a live backend via curl
+  (create session → create segment → get with nested segments → update
+  segment → delete segment → delete session → 404), confirming the REST
+  contract matches `types.ts`/`api.ts` exactly. UI itself not clicked through
+  in a real browser (no display in this sandbox) — build/typecheck/lint pass.
 
 ## Phase 6 — Multilingual validation
 - [ ] Test recordings: pure Hindi, pure English, mixed code-switch sentences
