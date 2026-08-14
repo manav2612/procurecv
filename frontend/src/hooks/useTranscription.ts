@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { LiveSegment, WsMessage } from "../types";
 
 // Voice-activity-detected chunking: instead of blindly recording fixed-length
@@ -220,6 +220,21 @@ export function useTranscription(wsBaseUrl: string) {
     setIsRecording(false);
     setIsSpeaking(false);
   }, [endChunk]);
+
+  // If the component using this hook unmounts mid-recording (e.g. the user
+  // switches from the Record tab to Dashboard without clicking Stop —
+  // App.tsx renders these as an either/or, so Recorder actually unmounts),
+  // nothing else would ever release the mic, close the WebSocket, or clear
+  // the VAD/heartbeat intervals: they're plain browser/JS handles, not tied
+  // to React's lifecycle, so they'd keep running orphaned in the
+  // background indefinitely. That orphaned session keeps sending chunks to
+  // the single shared Whisper model instance, starving/delaying whatever
+  // session you start next — this was a real bug, not just theoretical.
+  useEffect(() => {
+    return () => {
+      stop();
+    };
+  }, [stop]);
 
   return { segments, isRecording, isSpeaking, pendingChunks, error, start, stop };
 }
