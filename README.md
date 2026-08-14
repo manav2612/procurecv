@@ -23,17 +23,42 @@ alembic upgrade head                  # create the schema
 uvicorn app.main:app --reload         # http://localhost:8000
 ```
 
-Run the test suite (uses an in-memory SQLite DB, no Postgres required):
+Run the fast test suite (CRUD only, in-memory SQLite, no Postgres/model
+needed):
 
 ```bash
 pytest
 ```
 
+Run the real speech-to-text integration test too (loads the actual
+`faster-whisper` model — first run downloads it, ~1-2 min; cached after that):
+
+```bash
+pytest -m slow
+```
+
+### Real-time transcription (WebSocket)
+
+`ws://localhost:8000/ws/transcribe/{session_id}` — create a session via
+`POST /api/sessions` first, then connect. Send one self-contained audio blob
+per WebSocket message (e.g. a few seconds of WAV/WebM from the browser's
+`MediaRecorder`); the server replies with one JSON message per finalized
+segment: `{"type": "final", "id", "text", "start_ts", "end_ts", "confidence"}`,
+persisting each segment to the DB as it's produced. See
+`backend/app/routers/transcribe.py` for the full protocol notes and known
+approximations (timestamps are wall-clock-based, not sample-accurate).
+
+The Whisper model size defaults to `small` (set `WHISPER_MODEL_SIZE` env var
+to override) — benchmarked against `tiny`/`base` on this CPU, `small` is the
+only one that reliably transcribes Hindi into correct Devanagari instead of
+mis-scripted gibberish; the tradeoff is a few seconds of latency per chunk
+(near-real-time, not sub-second). See `PLAN.md`'s "known tradeoffs" section.
+
 ## Status
 
-Phase 1 (scaffolding) and Phase 2 (backend skeleton: FastAPI app, models,
-Alembic migration, REST CRUD for sessions/segments) are done. STT integration
-(`faster-whisper`) and the frontend are not built yet — see `TODO.md`.
+Phase 1 (scaffolding), Phase 2 (backend skeleton), and Phase 3 (STT
+integration: `faster-whisper`, WebSocket streaming endpoint) are done. The
+frontend is not built yet — see `TODO.md`.
 
 Note: this dev sandbox has no Docker available, so the backend was validated
 against an in-memory SQLite DB via the test suite rather than a live Postgres

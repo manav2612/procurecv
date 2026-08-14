@@ -17,10 +17,10 @@ Checklist form of `PLAN.md`. Check items off as they're completed.
 - [x] Local Postgres via docker-compose for dev (`docker-compose.yml`, untested locally — no Docker in this sandbox)
 
 ## Phase 3 — STT integration
-- [ ] Install & smoke-test `faster-whisper` standalone on a sample WAV file
-- [ ] Pick model size (start `small`, benchmark CPU latency)
-- [ ] WebSocket endpoint `/ws/transcribe/{session_id}`: receive chunked audio, run inference
-- [ ] Stream partial transcript back to client; persist finalized segments to DB
+- [x] Install & smoke-test `faster-whisper` standalone on a sample WAV file (used gTTS-generated English/Hindi/mixed samples, since no real mic input in this sandbox)
+- [x] Pick model size — benchmarked tiny/base/small; `small` chosen as default (only one giving correct Devanagari for Hindi, at the cost of a few seconds latency per chunk — see PLAN.md tradeoffs)
+- [x] WebSocket endpoint `/ws/transcribe/{session_id}`: receive chunked audio, run inference
+- [x] Persist finalized segments to DB as they're produced, streamed back to client as JSON (real-time "partial" streaming mid-chunk not implemented — only per-chunk finals; noted as a partial-completion tradeoff)
 
 ## Phase 4 — Frontend: live transcription
 - [ ] Vite + React + TS scaffold
