@@ -19,6 +19,10 @@ working vertical slice over polish.
 - **Frontend**: React + TypeScript, built with Vite
 - **Deployment target**: single service — FastAPI serves the built frontend static
   assets, with a free-tier managed Postgres (Neon/Supabase) as the DB
+- **Real-time protocol**: the `/ws/transcribe/{session_id}` WebSocket has a small
+  JSON handshake/control protocol (`ready`, `processing`, `final`, `chunk_done`,
+  `ping`/`pong`, `stop`) layered on top of the raw audio-chunk bytes — see the
+  docstring in `backend/app/routers/transcribe.py` before changing it.
 
 ## Structure
 
@@ -39,3 +43,15 @@ TODO.md      Granular checklist, mirrors PLAN.md phases
 - Don't commit model weights, `.env` files, or `node_modules`/`__pycache__` — see
   `.gitignore`.
 - Use the `/checkpoint` skill to commit work-in-progress at natural stopping points.
+- **The Whisper model is a process-wide singleton behind a lock** (`get_model()` +
+  `_inference_lock` in `backend/app/stt.py`). Don't add a second model instance or
+  call `model.transcribe()` outside that lock — ctranslate2 isn't safe/efficient for
+  concurrent calls into one model, and this app deliberately serializes all chunks
+  rather than parallelizing them (see `PLAN.md`'s tradeoffs).
+- **Any frontend hook/component holding a live browser resource (WebSocket,
+  MediaRecorder, AudioContext, `setInterval`/`setTimeout`) must clean it up in a
+  `useEffect` return, not only on an explicit user action.** `App.tsx` renders
+  Record/Dashboard as an either/or, so navigating away *unmounts* the component —
+  React unmounting does not tear down plain JS/DOM handles held only via refs. A
+  missing cleanup here caused a real bug (orphaned recordings competing for the
+  shared model, see `TODO.md`'s "Post-Phase-5 hardening").

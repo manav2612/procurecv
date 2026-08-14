@@ -22,15 +22,23 @@ Source: `Procucev AI Tech Hiring Assignment.pdf` — Assignment 1: Real-time Tra
 
 ```
 Browser (React)
-  ├─ MediaRecorder captures mic audio in ~3s chunks
-  ├─ WebSocket → /ws/transcribe/{session_id}  (live streaming transcription)
+  ├─ AnalyserNode watches mic RMS energy (VAD); MediaRecorder captures a
+  │   chunk from speech-onset to speech-pause (or a max-duration cap) —
+  │   not a blind fixed-length timer
+  ├─ WebSocket → /ws/transcribe/{session_id}  (live streaming transcription,
+  │   with a ready/processing/chunk_done/ping-pong protocol — see below)
   └─ REST client → /api/... (dashboard CRUD)
 
 FastAPI backend
-  ├─ WebSocket endpoint: receives audio chunks, runs faster-whisper inference,
-  │   streams partial transcript back, appends finalized segments to DB
+  ├─ WebSocket endpoint: sends a "ready" handshake, then per audio chunk runs
+  │   faster-whisper inference (finalized segments only — no interim/partial
+  │   text within a chunk, that's a known scope cut), appends segments to DB,
+  │   and replies "processing" -> zero-or-more "final" -> always "chunk_done"
   ├─ REST CRUD endpoints: sessions & transcript segments
-  ├─ faster-whisper model loaded once at startup (small/medium, int8, CPU)
+  ├─ faster-whisper model: lazy-loaded singleton (first WS message pays the
+  │   ~30-60s load cost, not app startup — keeps the CRUD test suite fast/
+  │   offline), inference serialized process-wide via a threading.Lock since
+  │   ctranslate2 isn't safe/efficient for concurrent calls into one model
   └─ SQLAlchemy models + Alembic migrations
 
 PostgreSQL
@@ -43,6 +51,8 @@ Single deployable service: FastAPI serves the built React static assets, so only
 ## Known tradeoffs (flagging honestly, not hiding them)
 - True low-latency real-time STT with a self-hosted Whisper-family model on free-tier CPU hosting will feel "near real-time" (a few seconds of buffering per chunk), not instant. The assignment explicitly says partial/imperfect is fine — this will be called out in the README rather than over-promised.
 - Hindi+English code-switch accuracy depends on the model size; starting with `small`/`medium` multilingual weights for reasonable CPU latency, documenting the tradeoff, and leaving room to size up if a GPU host is used instead.
+- Only one chunk transcribes at a time, server-wide (see the `threading.Lock` above) — under concurrent load (multiple sessions/tabs at once) chunks queue up rather than running in parallel. Correct and predictable, but means latency scales with how many sessions are active simultaneously, not just per-session. A real production version would need multiple model workers/replicas to fix that; out of scope here.
+- No interim/word-by-word streaming within a chunk — you only see text once a whole VAD-detected chunk finishes transcribing. Genuinely incremental ASR (partial hypotheses mid-utterance) would need a different model/architecture; this is a deliberate, documented scope cut, not an oversight.
 
 ## Phases
 

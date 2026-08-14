@@ -41,6 +41,10 @@ Checklist form of `PLAN.md`. Check items off as they're completed.
   in a real browser (no display in this sandbox) — build/typecheck/lint pass.
 - [x] Delete-session confirmation uses an in-app toast (`ToastProvider`/`useToast` in `Toaster.tsx`) instead of the native `confirm()` dialog, plus a success toast on delete.
 
+## Post-Phase-5 hardening (found via real usage, not planned upfront)
+- [x] **Real-time protocol upgrade**: WS handshake (`ready` before the client starts recording), `ping`/`pong` heartbeat, `processing`/`chunk_done` per-chunk lifecycle messages. Replaced fixed-4s-timer chunking with VAD-based chunking (cuts on a speech pause or max-duration cap). Verified against the live backend with a real Node WebSocket client, not just pytest.
+- [x] **Fixed a real bug**: switching from the Record tab to Dashboard unmounts `<Recorder/>` (App.tsx renders them as an either/or), but `useTranscription` had no unmount cleanup — the WebSocket/MediaRecorder/AudioContext/intervals kept running orphaned, and every new session had to share the one CPU-bound Whisper model with however many orphaned sessions were still streaming at it. Confirmed via the user's own test data (a 74s gap between segments that should've been a few seconds apart; 3 different sessions' backlogged segments all landing in the same 12s window). Fixed with a `useEffect` cleanup on unmount (frontend) + a `threading.Lock` serializing all model inference server-wide as a defensive backstop (backend, `app/stt.py`).
+
 ## Phase 6 — Multilingual validation
 - [ ] Test recordings: pure Hindi, pure English, mixed code-switch sentences
 - [ ] Tune chunk size / model size for acceptable accuracy vs latency
