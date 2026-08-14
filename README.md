@@ -78,6 +78,19 @@ only one that reliably transcribes Hindi into correct Devanagari instead of
 mis-scripted gibberish; the tradeoff is a few seconds of latency per chunk
 (near-real-time, not sub-second). See `PLAN.md`'s "known tradeoffs" section.
 
+### Known accuracy limitations (measured, Phase 6)
+
+Real transcriptions against known ground truth, not a general disclaimer:
+
+- **English: essentially solved.** Exact word-for-word matches in testing, ~6s latency, confidence 0.74-0.79.
+- **Pure Hindi: good on clips with a few seconds of speech, shaky on very short ones.** A ~8s Hindi sentence came back in correct, readable Devanagari with only minor spelling slips. A ~3s Hindi clip mis-scripted entirely into Perso-Arabic script instead of Devanagari.
+- **Code-switched Hindi+English — the real weak point, and exactly the assignment's core scenario.** Whisper locks onto one auto-detected language per chunk, so English words inside mostly-Hindi speech get phonetically transliterated into Devanagari instead of staying in Latin script:
+  > expected: *"...aur main ek full stack **developer** hoon."*
+  > got: *"...और मैं एक फुल स्टाक **धवलड़पा** हूँ"*
+
+  Confidence reliably flags this (0.38-0.48 on garbled code-switch output vs 0.74+ on clean single-language audio) — a segment's `confidence` field is a decent "trust this less" signal if you're reviewing the dashboard.
+- **Chunk boundaries matter more than chunk size.** Splitting one clip at an arbitrary fixed timestamp (not a natural pause) made a chunk take 6x longer to transcribe than the same audio as one piece, because the cut landed mid-phrase and triggered Whisper's internal retry decoding on the ambiguous boundary. This is the concrete evidence behind the VAD-based chunking design above — it's not just a hunch that pause-aligned cuts would help, a fixed-point cut was measurably worse. Full writeup with numbers: `TODO.md`'s Phase 6 section.
+
 ## Frontend setup
 
 See `frontend/README.md`. Quick start:
@@ -91,9 +104,10 @@ npm run dev   # http://localhost:5173 — expects the backend running on :8000
 
 ## Status
 
-Phases 1-5 are done: scaffolding, backend skeleton, STT integration,
-live-transcription frontend, and the CRUD dashboard. Remaining work is
-multilingual validation and deployment — see `TODO.md`.
+Phases 1-6 are done: scaffolding, backend skeleton, STT integration,
+live-transcription frontend, the CRUD dashboard, and multilingual validation
+(see "Known accuracy limitations" above). Remaining work is Dockerizing and
+deploying — see `TODO.md`.
 
 Honest caveats (no display/mic/Docker in this dev sandbox):
 - **Mic recording (Phase 4)**: verified via build, typecheck, lint, and a
