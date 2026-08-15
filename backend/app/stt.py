@@ -7,14 +7,17 @@ from functools import lru_cache
 
 from faster_whisper import WhisperModel
 
-# Benchmarked tiny/base/small on this CPU (see PLAN.md's "known tradeoffs"):
+# Benchmarked tiny/base/small on CPU (see PLAN.md's "known tradeoffs"):
 # tiny/base are faster but frequently mis-script Hindi into Persian/Urdu-like
-# gibberish; "small" reliably produces correct Devanagari, at the cost of a
-# few seconds of lag per chunk (near-real-time, not sub-second). Since
-# transcription correctness is the actual assignment requirement, "small" is
-# the default — override via env var if deploying with a GPU or want lower
-# latency instead.
-WHISPER_MODEL_SIZE = os.environ.get("WHISPER_MODEL_SIZE", "small")
+# gibberish; "small" reliably produces correct Devanagari. Bumped to
+# "medium" for better accuracy given real RAM is available (self-hosted
+# deploy, 16GB+) -- this is the single default used everywhere (no per-host
+# override anywhere in this repo), so hosts without enough RAM/CPU for
+# "medium" (e.g. Render's free tier) will be slow or fail to load it. That's
+# an accepted, documented tradeoff of those hosts now -- see README.md's
+# "Hosting decision, honestly" -- not something routed around with a
+# quieter, smaller model substituted only there.
+WHISPER_MODEL_SIZE = os.environ.get("WHISPER_MODEL_SIZE", "medium")
 
 
 @dataclass

@@ -12,13 +12,10 @@ primary_region = "iad"
 
 [build]
 
-[env]
-  # Sized generously enough (2GB machine below) to run the app's own
-  # default `small` model properly — unlike the Render deploy, which had to
-  # downgrade to `base` to fit in 512MB. Better Hindi accuracy as a result;
-  # see PLAN.md's tradeoffs section for why `small` was chosen in the first
-  # place.
-  WHISPER_MODEL_SIZE = "small"
+# No WHISPER_MODEL_SIZE override here on purpose (see stt.py / render.yaml)
+# — the app's own default is used on every host, no exceptions, so behavior
+# can't silently differ by where it's deployed. The 2GB machine below is
+# sized to comfortably run it regardless of what that default currently is.
 
 [http_service]
   internal_port = 8000

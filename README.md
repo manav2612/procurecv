@@ -72,11 +72,16 @@ of waiting out a fixed interval. See that file's top comment for the exact
 thresholds and the honest caveat that they're tuned by guess, not measured
 against real hardware.
 
-The Whisper model size defaults to `small` (set `WHISPER_MODEL_SIZE` env var
-to override) — benchmarked against `tiny`/`base` on this CPU, `small` is the
-only one that reliably transcribes Hindi into correct Devanagari instead of
-mis-scripted gibberish; the tradeoff is a few seconds of latency per chunk
-(near-real-time, not sub-second). See `PLAN.md`'s "known tradeoffs" section.
+The Whisper model size defaults to `medium` (set `WHISPER_MODEL_SIZE` env
+var to override — no host in this repo does, on purpose, see "Deploying"
+below). Benchmarked `tiny`/`base`/`small` on CPU: `small` was the smallest
+size that reliably transcribed Hindi into correct Devanagari instead of
+mis-scripted gibberish (see `PLAN.md`'s "known tradeoffs"). Bumped to
+`medium` for better accuracy once real hardware (a self-hosted server) was
+available — verified it loads and transcribes correctly (confirmed against
+`tests/fixtures/english.mp3`) before making it the default. Costs more
+latency and RAM than `small`; fine on real hardware, likely too much for
+constrained free-tier hosts (see "Hosting decision, honestly").
 
 ### Known accuracy limitations (measured, Phase 6)
 
@@ -119,11 +124,12 @@ in `app/main.py`). This is what actually gets deployed; the split
 **One model size everywhere, on purpose.** `WHISPER_MODEL_SIZE` is never
 overridden per-host (not in `docker-compose.yml`, `fly.toml`, or
 `render.yaml`) — every deployment target runs the app's own default,
-`small`, chosen for Hindi accuracy (see `PLAN.md`). Behavior shouldn't
-silently differ depending on where it's deployed; if a given host's
-hardware can't handle `small` well, that's accepted and documented as a
-tradeoff of that host (see "Hosting decision, honestly" below), not solved
-by quietly running a different, less accurate model there.
+`medium`, chosen for accuracy now that real hardware (a self-hosted server)
+is available (see `PLAN.md`). Behavior shouldn't silently differ depending
+on where it's deployed; if a given host's hardware can't handle `medium`
+well, that's accepted and documented as a tradeoff of that host (see
+"Hosting decision, honestly" below), not solved by quietly running a
+different, less accurate model there.
 
 ### Primary: your own server
 
@@ -153,12 +159,16 @@ on Render, wired together automatically (`fromDatabase`).
    automatically on container start, creating the schema on first boot.
 
 Honest expectation: Render's free plan gives 512MB RAM and a heavily
-*shared* (not dedicated) sliver of CPU — confirmed too slow to usably
-process audio chunks running `small` there. That's a real limitation of
-this specific free tier, not a bug; see "Known accuracy limitations" above
-and "Hosting decision, honestly" below. Also expect a slow first request
-after ~15 minutes of inactivity (container spin-down + Whisper's own
-one-time model-load cost stack together).
+*shared* (not dedicated) sliver of CPU. This was already confirmed too slow
+to usably process audio chunks running the smaller `small` model; now that
+the app's default is `medium` (heavier still, chosen once real hardware
+became the primary target — see above), Render is likely to fail loading
+the model at all on 512MB, not just run slowly. That's a real limitation of
+this specific free tier, not a bug — see "Known accuracy limitations" above
+and "Hosting decision, honestly" below. If you actually need Render to
+work, override `WHISPER_MODEL_SIZE` down to `tiny`/`base` for that
+deployment specifically; this repo just doesn't do that by default anymore
+(see "One model size everywhere" above for why).
 
 ### Hosting decision, honestly
 
