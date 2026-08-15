@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.routers import segments, sessions, transcribe
 
@@ -25,3 +28,17 @@ app.include_router(transcribe.router)
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+# Single-deployable-service mode (see PLAN.md): if the frontend has been
+# built, serve it directly instead of running a separate frontend host.
+# ../frontend/dist is the same relative layout in local dev (after `npm run
+# build`) and in the Docker image (see Dockerfile) — resolved via __file__,
+# not cwd, so it works regardless of where uvicorn is launched from. If it
+# doesn't exist (no build yet), the mount is skipped — use the Vite dev
+# server instead (frontend/README.md), which is what the CORS origin above
+# is for. Must be registered last: a mount at "/" would otherwise shadow the
+# API routes above it.
+_frontend_dist = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
+if _frontend_dist.is_dir():
+    app.mount("/", StaticFiles(directory=_frontend_dist, html=True), name="frontend")
