@@ -34,8 +34,11 @@ services:
           name: procurecv-db
           property: connectionString
       - key: WHISPER_MODEL_SIZE
-        value: base # Render's free plan has 512MB RAM; `small` (the app's own default,
-        # chosen for Hindi accuracy — see PLAN.md) needs more than that and will likely
-        # get OOM-killed. `base` fits, at the cost of the Hindi mis-scripting issue
-        # documented in README.md's "Known accuracy limitations". Bump this to `small`
-        # if you deploy on a plan/host with more RAM.
+        value: tiny # Started at `base` (small needs more than 512MB RAM and OOMs), but
+        # base was still too slow to usably process chunks on Render's free plan's
+        # heavily shared CPU -- confirmed by the user, not assumed. Dropped to `tiny`,
+        # the lightest/fastest option, trading more accuracy for a shot at usable
+        # latency on this CPU budget. If it's still too slow, that's a real,
+        # documented limit of this hosting tier -- see README.md's "Known accuracy
+        # limitations" and "Deploying" sections. Bump back up to `small` (the app's own
+        # default) on any host with dedicated, more generous CPU/RAM.

@@ -1,20 +1,3 @@
----
-title: ProcureCV
-emoji: 🎙️
-colorFrom: purple
-colorTo: blue
-sdk: docker
-app_port: 8000
-pinned: false
----
-<!--
-The YAML frontmatter above is required by Hugging Face Spaces (see the
-"Deploying (Hugging Face Spaces)" section below) — HF reads it to know this
-is a Docker-SDK Space and which port the container listens on. It's inert
-everywhere else (GitHub renders it as a plain horizontal-rule-delimited
-block, ignored by every other tool that reads this file).
--->
-
 # ProcureCV
 
 Real-time, multilingual (Hindi + English) Speech-to-Text web application with a
@@ -131,60 +114,68 @@ container on http://localhost:8000 (see `Dockerfile`: a Node stage builds
 in `app/main.py`). This is what actually gets deployed; the split
 `uvicorn --reload` + `npm run dev` setup above is just for day-to-day dev.
 
-## Deploying (Hugging Face Spaces, free, no card required)
+## Deploying (Render, free, no card required)
 
-**Current recommendation**, after Render's free tier (512MB RAM, heavily
-shared CPU) proved too constrained to run `faster-whisper` usefully — even
-its lighter `base` model struggled. Hugging Face Spaces' free CPU tier gives
-**16GB RAM**, no credit card required, and takes this repo's existing
-`Dockerfile` as-is (Space type: Docker, configured via the YAML frontmatter
-at the very top of this file).
+**Current recommendation, arrived at after evaluating three hosts** — see
+"Hosting decision, honestly" below for why the other two didn't work out.
+`render.yaml` provisions both the web service **and** a Postgres database
+on Render, wired together automatically (`fromDatabase`) — no connection
+string to copy-paste anywhere.
 
-1. Create a Hugging Face account (free) at huggingface.co if you don't have
-   one, then create a new Space: **huggingface.co/new-space**, SDK = **Docker**.
-2. Push this repo's code to the Space (Spaces are git repos) — either
-   `git push` directly to the Space's git URL, or connect it to this GitHub
-   repo if your plan supports that sync.
-3. In the Space's **Settings -> Repository secrets**, add `DATABASE_URL` —
-   reuse a Neon connection string (free, doesn't expire; see below) or any
-   Postgres instance. The app accepts either `postgres://...` or
-   `postgresql://...` directly (see `app/config.py`'s
-   `normalize_database_url`) — no manual scheme editing needed.
-4. The Space builds the `Dockerfile` and starts the container automatically.
-   `alembic upgrade head` runs on every start (see the `Dockerfile`'s `CMD`),
-   creating the schema on first boot.
+1. Push this repo to GitHub.
+2. In Render: **New -> Blueprint**, point it at the repo. Render reads
+   `render.yaml` and shows you both resources it will create (the
+   `procurecv` web service and the `procurecv-db` database).
+3. Click **Apply**. No env vars to fill in by hand.
+4. Render builds the `Dockerfile` and runs `alembic upgrade head`
+   automatically on container start, creating the schema on first boot.
 
-With 16GB available, `WHISPER_MODEL_SIZE` doesn't need to be downgraded —
-the app's own `small` default (chosen for Hindi accuracy, see `PLAN.md`)
-should run comfortably; set it as a Space secret/variable only if you want
-to override it.
+**Why `render.yaml` sets `WHISPER_MODEL_SIZE=tiny`, not the app's own
+`small` default**: Render's free plan gives 512MB RAM and a heavily
+*shared* (not dedicated) sliver of CPU. `small` doesn't fit in the RAM;
+`base` fits but was confirmed too slow to usably process audio chunks on
+the shared CPU. `tiny` trades more transcription accuracy for a real shot
+at usable latency within this tier's actual constraints. If it's still too
+slow, that's a genuine, documented limit of free-tier shared hosting, not a
+remaining bug — see "Known accuracy limitations" above for what accuracy
+looks like at each model size, and bump this back up on any host with
+dedicated (not shared) CPU/RAM.
 
-**Database — Neon** (free, doesn't expire, no card): create a project at
-neon.tech, copy its connection string, and paste it into the Space's
-`DATABASE_URL` secret. This exact path (Neon + this app) was already
-verified for real earlier — see `TODO.md` Phase 7: a live `alembic upgrade
-head` and a full CRUD round-trip both ran successfully against it.
+**Expect a slow first request after any idle period**: the free plan spins
+the container down after ~15 minutes of inactivity (cold start ~30-60s on
+the next request), and the Whisper model itself is lazy-loaded on the first
+WebSocket message (another one-time load cost, smaller for `tiny` than for
+`base`/`small`). Stacked together, the first interaction after idle time
+can take a while before it feels responsive.
 
-**Verification status**: the backend-to-Postgres path (Neon) and the
-Dockerfile's build logic are both independently verified for real. The
-Hugging Face Space itself — actually building and serving traffic there —
-isn't, since I don't have an HF account; that needs confirming by whoever
-runs the deploy.
+### Hosting decision, honestly
 
-### Previously tried: Render (documented for reference, not recommended)
+This app ended up evaluating three hosts, in order, hitting a real and
+different blocker at each:
 
-`render.yaml` and `fly.toml` are still in this repo from evaluating Render
-and Fly.io before landing on Hugging Face Spaces. Render's free plan
-deployed successfully (the Postgres wiring and single-service static
-serving both worked, and both are exercised the same way regardless of
-host) but couldn't run the model at a usable speed — 512MB RAM forced a
-downgrade to `WHISPER_MODEL_SIZE=base`, and the free plan's heavily shared
-CPU still made even that too slow to reliably process audio chunks. Fly.io
-would likely have solved the resource problem (dedicated, not shared,
-CPU/RAM) but requires a card on file, which was a hard constraint. Kept
-here rather than deleted, since the Postgres-wiring and single-service
-lessons documented in `TODO.md` are still accurate and useful regardless of
-which host is actually used.
+1. **Render** — genuinely free, no card, and both the Postgres wiring and
+   single-service static-file serving worked correctly (confirmed live).
+   The blocker: 512MB RAM and heavily shared CPU couldn't run `faster-whisper`
+   at a usable speed even at the lightest reasonable model size.
+2. **Fly.io** — would likely have fixed the speed problem (dedicated, not
+   shared, CPU/RAM per machine; `fly.toml` in this repo reflects that
+   config, 2GB VM). Blocker: requires a card on file, which was a hard
+   constraint for this deploy.
+3. **Hugging Face Spaces** — investigated based on a claim (mine, and
+   wrong) that its free tier had a generous CPU option. It doesn't: Docker
+   and `cpu-basic` both require a paid plan; the only free option with real
+   compute is ZeroGPU, which is GPU-only and built around Gradio's UI
+   component model — it doesn't fit this app's shape (a custom FastAPI +
+   WebSocket server with its own React frontend) without a substantial
+   rewrite. Ruled out once this was actually checked against Hugging Face's
+   own current documentation rather than assumed.
+
+Landed back on Render with the lightest model size, per the assignment's
+own "partial completion is acceptable" allowance — a working, honestly
+slower deployment beats chasing a free host that doesn't exist for this
+workload's actual resource needs. `render.yaml`, `fly.toml` are all kept in
+the repo rather than deleted, since the config and lessons in each remain
+accurate regardless of which one is actually running.
 
 ## Status
 
