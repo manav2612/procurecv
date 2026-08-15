@@ -46,7 +46,7 @@ PostgreSQL
   └─ transcript_segments(id, session_id, text, start_ts, end_ts, confidence, created_at)
 ```
 
-Single deployable service: FastAPI serves the built React static assets, so only one process/host is needed for deployment (simpler than separate frontend/backend hosts). DB via a free-tier managed Postgres (Neon/Supabase) so the app host stays stateless.
+Single deployable service: FastAPI serves the built React static assets, so only one process/host is needed for deployment (simpler than separate frontend/backend hosts). DB via a free-tier managed Postgres so the app host stays stateless. **Decided (Phase 7, user's choice): Render** (Docker-based web service, free, no card required) **+ Neon** (Postgres, free, no card required) — both genuinely free with no payment method needed anywhere, which mattered more than raw performance for a one-off hiring-assignment deploy. See `render.yaml` and README.md's "Deploying" section for the concrete steps.
 
 ## Known tradeoffs (flagging honestly, not hiding them)
 - True low-latency real-time STT with a self-hosted Whisper-family model on free-tier CPU hosting will feel "near real-time" (a few seconds of buffering per chunk), not instant. The assignment explicitly says partial/imperfect is fine — this will be called out in the README rather than over-promised.

@@ -102,12 +102,66 @@ cp .env.example .env
 npm run dev   # http://localhost:5173 — expects the backend running on :8000
 ```
 
+## Running the full stack in Docker
+
+```bash
+docker compose up --build app   # also brings up the `db` (Postgres) service
+```
+
+Serves the whole app — API, WebSocket, and the built frontend — from one
+container on http://localhost:8000 (see `Dockerfile`: a Node stage builds
+`frontend/dist`, a Python stage serves it via FastAPI's `StaticFiles` mount
+in `app/main.py`). This is what actually gets deployed; the split
+`uvicorn --reload` + `npm run dev` setup above is just for day-to-day dev.
+
+## Deploying (Render + Neon, both free, no card required)
+
+1. **Database — [Neon](https://neon.tech)**: create a free project, copy its
+   connection string (the `postgresql://...` one, not the pooled variant —
+   psycopg2 doesn't need pooling for this app's traffic). It should look like
+   `postgresql://<user>:<password>@<host>/<db>?sslmode=require`.
+2. **Web service — [Render](https://render.com)**: push this repo to GitHub,
+   then in Render either apply [`render.yaml`](./render.yaml) as a Blueprint
+   (New -> Blueprint, point at the repo) or create a Web Service manually
+   with runtime "Docker" and the same settings it describes.
+3. In the Render dashboard, set the `DATABASE_URL` env var to the Neon
+   connection string from step 1 (`render.yaml` deliberately leaves it unset
+   — `sync: false` — since it's a secret, not something to commit).
+4. Deploy. Render builds the `Dockerfile` and runs `alembic upgrade head`
+   automatically on container start (see the `Dockerfile`'s `CMD`), so the
+   schema gets created against Neon on first boot — no separate migration
+   step needed.
+
+**Why `render.yaml` sets `WHISPER_MODEL_SIZE=base` instead of the app's own
+`small` default**: Render's free plan gives 512MB RAM, and `small` needs
+more than that to load reliably — it'll likely get OOM-killed. `base` fits,
+at the cost of the Hindi mis-scripting issue documented above under "Known
+accuracy limitations." If you deploy somewhere with more RAM (a paid plan,
+or a different host), remove that override so it falls back to `small`.
+
+**Expect a slow first request after any idle period**: Render's free plan
+spins the container down after ~15 minutes of inactivity (cold start ~30-60s
+on the next request), Neon auto-suspends similarly, and the Whisper model
+itself is lazy-loaded on the first WebSocket message (another ~30-60s the
+very first time, less once the model is cached). Stacked together, the
+first real interaction after a period of inactivity could take a minute or
+two before it feels responsive — normal for this setup, not a bug.
+
+**Not yet verified**: I don't have Render/Neon accounts or credentials, so
+this config is prepared and validated as thoroughly as possible from here
+(Dockerfile logic verified by running the equivalent single-service setup
+locally without Docker — see "Serve built frontend from FastAPI" — plus
+YAML/schema validation of `render.yaml` and `docker-compose.yml`), but the
+actual deploy has to be run by you. Please report back what you find so this
+can be fixed forward if something doesn't work as expected.
+
 ## Status
 
 Phases 1-6 are done: scaffolding, backend skeleton, STT integration,
 live-transcription frontend, the CRUD dashboard, and multilingual validation
-(see "Known accuracy limitations" above). Remaining work is Dockerizing and
-deploying — see `TODO.md`.
+(see "Known accuracy limitations" above). Phase 7 (Docker + deploy config)
+is prepared and locally verified where possible, but the actual deploy to
+Render/Neon needs to be run by you — see "Deploying" above and `TODO.md`.
 
 Honest caveats (no display/mic/Docker in this dev sandbox):
 - **Mic recording (Phase 4)**: verified via build, typecheck, lint, and a

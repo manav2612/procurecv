@@ -16,5 +16,28 @@ services:
       timeout: 5s
       retries: 10
 
+  # Full single-service build (frontend baked in — see Dockerfile). Not
+  # needed for day-to-day dev (run `uvicorn --reload` + `npm run dev`
+  # instead, see README.md) — this is for testing the actual deploy artifact
+  # locally: `docker compose up --build app`.
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg2://procurecv:procurecv@db:5432/procurecv
+      WHISPER_MODEL_SIZE: ${WHISPER_MODEL_SIZE:-small}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # Persists the downloaded Whisper model across container restarts —
+      # without this, every `docker compose up` re-downloads it.
+      - whisper_cache:/root/.cache/huggingface
+
 volumes:
   pgdata:
+  whisper_cache:

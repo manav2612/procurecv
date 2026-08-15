@@ -58,11 +58,11 @@ Checklist form of `PLAN.md`. Check items off as they're completed.
 5. **Latency is driven by decode difficulty, not audio duration.** The hardest/most garbled clips took the longest (up to 136s for 12s of audio) while a longer, more coherent 24s clip finished in 25s — worth knowing since "latency scales with input length" is the intuitive but wrong assumption.
 
 ## Phase 7 — Dockerize + deploy
-- [ ] `Dockerfile` for backend (serves built frontend static assets)
-- [ ] `docker-compose.yml` for local full-stack dev
-- [ ] Provision free-tier managed Postgres (Neon/Supabase)
-- [ ] Deploy to a free cloud host (Render/Railway/Fly.io — decide at this phase)
-- [ ] Verify deployed URL end-to-end (record → transcribe → appears in dashboard)
+- [x] `app/main.py` now mounts the built frontend (`frontend/dist`) as static files after all API routes — single-service deploy, verified locally against a real build (root serves `index.html`, JS asset resolves, `/api/health` + full WS handshake still work alongside the mount, unmapped paths correctly 404). Backend test suite still green (4/4).
+- [x] `Dockerfile`: multi-stage (Node stage builds the frontend, Python stage serves it + the API; `CMD` runs `alembic upgrade head` before `uvicorn` on every start). `.dockerignore` added.
+- [x] `docker-compose.yml`: added an `app` service (builds the full Dockerfile, depends on `db` being healthy, persists the downloaded Whisper model in a named volume so it isn't re-fetched every restart) alongside the existing `db` service.
+- [x] Host chosen (user's call, asked directly rather than assumed): **Render** (web service, Docker runtime, free plan, no card required) + **Neon** (Postgres, free, no card required). `render.yaml` blueprint written; `WHISPER_MODEL_SIZE` overridden to `base` for the free plan's 512MB RAM (the app's own default is `small` — see PLAN.md — which needs more RAM than that and would likely get OOM-killed). Full step-by-step in README.md's "Deploying" section.
+- [ ] **Not done — needs the user's own accounts/credentials, which I don't have access to**: actually creating the Neon project, applying the Render blueprint, and deploying. Config is prepared and validated as thoroughly as possible without them (Dockerfile logic verified via the equivalent local non-Docker run; YAML validated). Verify end-to-end once deployed: record -> transcribe -> appears in dashboard, on the live URL.
 
 ## Phase 8 — Wrap-up
 - [ ] `README.md`: setup instructions, architecture diagram, known limitations

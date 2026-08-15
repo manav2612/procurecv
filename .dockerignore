@@ -1,0 +1,14 @@
+**/.venv
+**/node_modules
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+backend/*.sqlite3
+backend/.env
+frontend/.env
+frontend/dist
+.git
+.claude
+architecture.excalidraw
+*.md
