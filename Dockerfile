@@ -27,11 +27,14 @@ EXPOSE 8000
 # Applies migrations on every start (idempotent — alembic no-ops if already
 # at head). Simple and sufficient for a single-instance deploy; a multi-
 # instance rollout would want a separate migration step instead, out of
-# scope here. $PORT supports hosts (Render/Railway/Fly) that inject their
-# own port to bind.
+# scope here. $PORT supports hosts (Render/Fly/Railway) that inject their
+# own port to bind; Hugging Face Spaces doesn't, so this falls back to 8000,
+# matching this file's EXPOSE and the Space config's app_port in README.md.
 #
-# TEMPORARY diagnostic line (remove once the Render DATABASE_URL propagation
-# issue is resolved): logs whether DATABASE_URL is present and looks like a
-# real Postgres URL, WITHOUT ever printing the value itself — just presence,
-# length, and a substring check — so it's safe to leave in Render's logs.
+# The startup line also logs whether DATABASE_URL is present and looks like
+# a real Postgres URL, WITHOUT ever printing the value itself — just
+# presence, length, and a substring check. Added while debugging a Render-
+# specific env var propagation issue (see TODO.md); kept since it's a cheap,
+# safe sanity check on any host, not removed just because that specific bug
+# is behind us now.
 CMD ["sh", "-c", "echo \"[startup] DATABASE_URL: set=$([ -n \"$DATABASE_URL\" ] && echo yes || echo no) len=${#DATABASE_URL} looks_postgres=$(echo \"$DATABASE_URL\" | grep -qE '^postgres' && echo yes || echo no)\"; alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

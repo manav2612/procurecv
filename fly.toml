@@ -1,0 +1,51 @@
+# Deploys the same Dockerfile used for the Render setup (see Dockerfile,
+# render.yaml) — no app changes needed, just a different host. Chosen after
+# Render's free tier (512MB RAM, heavily shared/oversold CPU) proved too
+# constrained for faster-whisper to run usefully, even the lighter `base`
+# model. Fly gives dedicated (not shared) CPU/RAM per machine, sized
+# explicitly below, which is the actual fix for that problem.
+#
+# app name must be globally unique on Fly — if "procurecv" is taken, `fly
+# apps create <different-name>` and update this file's `app` line to match.
+app = "procurecv"
+primary_region = "iad"
+
+[build]
+
+[env]
+  # Sized generously enough (2GB machine below) to run the app's own
+  # default `small` model properly — unlike the Render deploy, which had to
+  # downgrade to `base` to fit in 512MB. Better Hindi accuracy as a result;
+  # see PLAN.md's tradeoffs section for why `small` was chosen in the first
+  # place.
+  WHISPER_MODEL_SIZE = "small"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "2gb"
+
+[mounts]
+  # Persists the downloaded Whisper model across restarts/redeploys, same
+  # reasoning as docker-compose.yml's whisper_cache volume — without this,
+  # every cold start (auto_stop_machines means this happens after idle
+  # periods) re-downloads the model instead of reusing a cached copy.
+  source = "whisper_cache"
+  destination = "/root/.cache/huggingface"
+
+[checks]
+  [checks.health]
+    type = "http"
+    port = 8000
+    path = "/api/health"
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "90s" # generous: first boot pays the Whisper model's
+    # one-time load cost on top of normal startup
