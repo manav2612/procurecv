@@ -160,8 +160,9 @@ can be fixed forward if something doesn't work as expected.
 Phases 1-6 are done: scaffolding, backend skeleton, STT integration,
 live-transcription frontend, the CRUD dashboard, and multilingual validation
 (see "Known accuracy limitations" above). Phase 7 (Docker + deploy config)
-is prepared and locally verified where possible, but the actual deploy to
-Render/Neon needs to be run by you — see "Deploying" above and `TODO.md`.
+is prepared and locally verified where possible, but the actual Render web
+service deploy still needs to be run by you — see "Deploying" above and
+`TODO.md`.
 
 Honest caveats (no display/mic/Docker in this dev sandbox):
 - **Mic recording (Phase 4)**: verified via build, typecheck, lint, and a
@@ -170,11 +171,14 @@ Honest caveats (no display/mic/Docker in this dev sandbox):
   end-to-end against a live backend via curl (create → nested-get → update →
   delete, matching `types.ts` exactly); the UI itself hasn't been clicked
   through in a real browser.
-- **Postgres**: all backend testing used SQLite; the Alembic migration is
-  dialect-agnostic but hasn't been run against real Postgres yet.
+- **Postgres**: ~~all backend testing used SQLite~~ — updated 2026-08-15:
+  the Alembic migration and a full CRUD round-trip (create session, create
+  segment, nested fetch, cascade delete) have now been run against a real
+  Neon Postgres instance and passed. Backend-DB integration is verified;
+  what's left is exercising it through the actual deployed Render service
+  and a real browser.
 
-Exercise the app in an actual browser with a real Postgres instance before
-considering it fully verified end-to-end. The generated Alembic migration
-uses dialect-agnostic SQLAlchemy Core operations, so it should apply the
-same way against Postgres as it did against SQLite — but that's still
-unverified against a real Postgres instance.
+Exercise the deployed app in an actual browser before considering the whole
+system fully verified end-to-end — the backend-to-Postgres path is now
+confirmed for real, but the deploy itself and the live mic-to-dashboard flow
+still aren't.

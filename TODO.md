@@ -12,7 +12,7 @@ Checklist form of `PLAN.md`. Check items off as they're completed.
 ## Phase 2 — Backend skeleton
 - [x] FastAPI app scaffold (`backend/app/main.py`)
 - [x] SQLAlchemy models: `TranscriptionSession` (table `sessions`), `TranscriptSegment`
-- [x] Alembic setup + initial migration (generated/verified against SQLite — no Docker in this sandbox; re-verify against real Postgres when available)
+- [x] Alembic setup + initial migration — generated/verified against SQLite initially (no Docker in this sandbox), then **actually re-verified against a real Neon Postgres instance on 2026-08-15**: `alembic upgrade head` created the schema cleanly, plus a full CRUD round-trip (create session/segment, nested fetch, cascade delete) confirmed working, test data cleaned up afterward
 - [x] REST CRUD: `GET/POST /api/sessions`, `GET/PUT/DELETE /api/sessions/{id}`, `POST /api/sessions/{id}/segments`, `PUT/DELETE /api/segments/{id}`
 - [x] Local Postgres via docker-compose for dev (`docker-compose.yml`, untested locally — no Docker in this sandbox)
 
@@ -62,7 +62,8 @@ Checklist form of `PLAN.md`. Check items off as they're completed.
 - [x] `Dockerfile`: multi-stage (Node stage builds the frontend, Python stage serves it + the API; `CMD` runs `alembic upgrade head` before `uvicorn` on every start). `.dockerignore` added.
 - [x] `docker-compose.yml`: added an `app` service (builds the full Dockerfile, depends on `db` being healthy, persists the downloaded Whisper model in a named volume so it isn't re-fetched every restart) alongside the existing `db` service.
 - [x] Host chosen (user's call, asked directly rather than assumed): **Render** (web service, Docker runtime, free plan, no card required) + **Neon** (Postgres, free, no card required). `render.yaml` blueprint written; `WHISPER_MODEL_SIZE` overridden to `base` for the free plan's 512MB RAM (the app's own default is `small` — see PLAN.md — which needs more RAM than that and would likely get OOM-killed). Full step-by-step in README.md's "Deploying" section.
-- [ ] **Not done — needs the user's own accounts/credentials, which I don't have access to**: actually creating the Neon project, applying the Render blueprint, and deploying. Config is prepared and validated as thoroughly as possible without them (Dockerfile logic verified via the equivalent local non-Docker run; YAML validated). Verify end-to-end once deployed: record -> transcribe -> appears in dashboard, on the live URL.
+- [x] Neon project created (by the user) and **actually verified working**: connected from this environment, ran `alembic upgrade head` against it for real (created `sessions`/`transcript_segments`), and a full CRUD round-trip incl. cascade delete passed. Test data cleaned up afterward. The connection string needs its scheme changed from `postgresql://` to `postgresql+psycopg2://` before use (Neon's dashboard gives the former; SQLAlchemy needs the driver named explicitly) — noted in README.md.
+- [ ] **Not done — needs the user's own Render account, which I don't have access to**: applying the `render.yaml` blueprint, pasting the (now-verified) `DATABASE_URL` in, and deploying. Everything short of that is done and validated: Dockerfile logic verified via the equivalent local non-Docker run, and the database half is now confirmed working for real rather than just schema-validated. Verify end-to-end once deployed: record -> transcribe -> appears in dashboard, on the live URL.
 
 ## Phase 8 — Wrap-up
 - [ ] `README.md`: setup instructions, architecture diagram, known limitations
