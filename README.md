@@ -114,13 +114,35 @@ container on http://localhost:8000 (see `Dockerfile`: a Node stage builds
 in `app/main.py`). This is what actually gets deployed; the split
 `uvicorn --reload` + `npm run dev` setup above is just for day-to-day dev.
 
-## Deploying (Render, free, no card required)
+## Deploying
 
-**Current recommendation, arrived at after evaluating three hosts** — see
-"Hosting decision, honestly" below for why the other two didn't work out.
+**One model size everywhere, on purpose.** `WHISPER_MODEL_SIZE` is never
+overridden per-host (not in `docker-compose.yml`, `fly.toml`, or
+`render.yaml`) — every deployment target runs the app's own default,
+`small`, chosen for Hindi accuracy (see `PLAN.md`). Behavior shouldn't
+silently differ depending on where it's deployed; if a given host's
+hardware can't handle `small` well, that's accepted and documented as a
+tradeoff of that host (see "Hosting decision, honestly" below), not solved
+by quietly running a different, less accurate model there.
+
+### Primary: your own server
+
+```bash
+git clone https://github.com/manav2612/procurecv.git
+cd procurecv
+docker compose up --build app
+```
+
+Brings up the full app (API, WebSocket, and the built frontend, all from
+one container) plus a local Postgres (`db` service), wired together
+automatically — no env vars to configure. Recommended over any free managed
+host when you have real hardware available: no RAM ceiling, no shared-CPU
+slowdown, no card requirement, nothing to fight.
+
+### Alternative: Render (free, no card, but slow)
+
 `render.yaml` provisions both the web service **and** a Postgres database
-on Render, wired together automatically (`fromDatabase`) — no connection
-string to copy-paste anywhere.
+on Render, wired together automatically (`fromDatabase`).
 
 1. Push this repo to GitHub.
 2. In Render: **New -> Blueprint**, point it at the repo. Render reads
@@ -130,37 +152,26 @@ string to copy-paste anywhere.
 4. Render builds the `Dockerfile` and runs `alembic upgrade head`
    automatically on container start, creating the schema on first boot.
 
-**Why `render.yaml` sets `WHISPER_MODEL_SIZE=tiny`, not the app's own
-`small` default**: Render's free plan gives 512MB RAM and a heavily
-*shared* (not dedicated) sliver of CPU. `small` doesn't fit in the RAM;
-`base` fits but was confirmed too slow to usably process audio chunks on
-the shared CPU. `tiny` trades more transcription accuracy for a real shot
-at usable latency within this tier's actual constraints. If it's still too
-slow, that's a genuine, documented limit of free-tier shared hosting, not a
-remaining bug — see "Known accuracy limitations" above for what accuracy
-looks like at each model size, and bump this back up on any host with
-dedicated (not shared) CPU/RAM.
-
-**Expect a slow first request after any idle period**: the free plan spins
-the container down after ~15 minutes of inactivity (cold start ~30-60s on
-the next request), and the Whisper model itself is lazy-loaded on the first
-WebSocket message (another one-time load cost, smaller for `tiny` than for
-`base`/`small`). Stacked together, the first interaction after idle time
-can take a while before it feels responsive.
+Honest expectation: Render's free plan gives 512MB RAM and a heavily
+*shared* (not dedicated) sliver of CPU — confirmed too slow to usably
+process audio chunks running `small` there. That's a real limitation of
+this specific free tier, not a bug; see "Known accuracy limitations" above
+and "Hosting decision, honestly" below. Also expect a slow first request
+after ~15 minutes of inactivity (container spin-down + Whisper's own
+one-time model-load cost stack together).
 
 ### Hosting decision, honestly
 
-This app ended up evaluating three hosts, in order, hitting a real and
-different blocker at each:
+This app ended up evaluating three managed hosts, in order, hitting a real
+and different blocker at each, before landing on self-hosting instead:
 
 1. **Render** — genuinely free, no card, and both the Postgres wiring and
    single-service static-file serving worked correctly (confirmed live).
    The blocker: 512MB RAM and heavily shared CPU couldn't run `faster-whisper`
-   at a usable speed even at the lightest reasonable model size.
+   at a usable speed.
 2. **Fly.io** — would likely have fixed the speed problem (dedicated, not
    shared, CPU/RAM per machine; `fly.toml` in this repo reflects that
-   config, 2GB VM). Blocker: requires a card on file, which was a hard
-   constraint for this deploy.
+   config, 2GB VM). Blocker: requires a card on file, a hard constraint here.
 3. **Hugging Face Spaces** — investigated based on a claim (mine, and
    wrong) that its free tier had a generous CPU option. It doesn't: Docker
    and `cpu-basic` both require a paid plan; the only free option with real
@@ -170,12 +181,12 @@ different blocker at each:
    rewrite. Ruled out once this was actually checked against Hugging Face's
    own current documentation rather than assumed.
 
-Landed back on Render with the lightest model size, per the assignment's
-own "partial completion is acceptable" allowance — a working, honestly
-slower deployment beats chasing a free host that doesn't exist for this
-workload's actual resource needs. `render.yaml`, `fly.toml` are all kept in
-the repo rather than deleted, since the config and lessons in each remain
-accurate regardless of which one is actually running.
+With a real server available, self-hosting sidesteps all three constraints
+at once (RAM ceiling, shared CPU, card requirement) — so that's now the
+primary path, with Render kept documented as the free/no-card fallback,
+honestly slower. `render.yaml` and `fly.toml` are kept in the repo rather
+than deleted, since the config and lessons in each remain accurate
+regardless of which one is actually running.
 
 ## Status
 

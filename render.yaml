@@ -33,12 +33,12 @@ services:
         fromDatabase:
           name: procurecv-db
           property: connectionString
-      - key: WHISPER_MODEL_SIZE
-        value: tiny # Started at `base` (small needs more than 512MB RAM and OOMs), but
-        # base was still too slow to usably process chunks on Render's free plan's
-        # heavily shared CPU -- confirmed by the user, not assumed. Dropped to `tiny`,
-        # the lightest/fastest option, trading more accuracy for a shot at usable
-        # latency on this CPU budget. If it's still too slow, that's a real,
-        # documented limit of this hosting tier -- see README.md's "Known accuracy
-        # limitations" and "Deploying" sections. Bump back up to `small` (the app's own
-        # default) on any host with dedicated, more generous CPU/RAM.
+      # No WHISPER_MODEL_SIZE override here on purpose: the app's own default
+      # (`small`, in backend/app/stt.py) is used everywhere now — same value
+      # in local dev, docker-compose.yml, fly.toml, and here, so behavior
+      # doesn't silently differ by host. Render's free tier (512MB RAM,
+      # heavily shared CPU) genuinely struggles to run `small` at a usable
+      # speed (confirmed: even the lighter `base` was too slow there) -- that
+      # tradeoff is now accepted and documented (README.md's "Known accuracy
+      # limitations" / "Hosting decision, honestly") rather than solved by
+      # quietly running a different, less accurate model only on this host.
