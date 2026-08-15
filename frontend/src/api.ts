@@ -1,8 +1,24 @@
 import type { Segment, Session, SessionWithSegments } from "./types";
 
-export const API_BASE: string = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+// No VITE_API_BASE_URL set (production/single-service build has none — see
+// Dockerfile) means: talk to whatever origin served this page. That's
+// correct for Render, where FastAPI serves both the API and this frontend
+// from the same origin (app/main.py's StaticFiles mount) — an empty base
+// makes fetch() resolve paths like "/api/sessions" relative to the current
+// page, no hardcoded host needed. Local split-service dev (Vite on :5173,
+// backend on :8000) still needs the explicit override from .env.example.
+export const API_BASE: string = import.meta.env.VITE_API_BASE_URL ?? "";
+
+function defaultWsBase(): string {
+  const scheme = window.location.protocol === "https:" ? "wss" : "ws";
+  return `${scheme}://${window.location.host}`;
+}
+
+// WebSocket() requires an absolute ws(s):// URL — unlike fetch(), a bare
+// relative path isn't valid here, so the same-origin case needs deriving
+// one from window.location rather than just leaving it blank.
 export const WS_BASE: string =
-  import.meta.env.VITE_WS_BASE_URL ?? API_BASE.replace(/^http/, "ws");
+  import.meta.env.VITE_WS_BASE_URL ?? (API_BASE ? API_BASE.replace(/^http/, "ws") : defaultWsBase());
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
