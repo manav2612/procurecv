@@ -3,15 +3,15 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: procurecv
-      POSTGRES_PASSWORD: procurecv
-      POSTGRES_DB: procurecv
+      POSTGRES_USER: speech_to_text
+      POSTGRES_PASSWORD: speech_to_text
+      POSTGRES_DB: speech_to_text
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U procurecv"]
+      test: ["CMD-SHELL", "pg_isready -U speech_to_text"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -26,8 +26,8 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+psycopg2://procurecv:procurecv@db:5432/procurecv
-      WHISPER_MODEL_SIZE: ${WHISPER_MODEL_SIZE:-small}
+      DATABASE_URL: postgresql+psycopg2://speech_to_text:speech_to_text@db:5432/speech_to_text
+      WHISPER_MODEL_SIZE: ${WHISPER_MODEL_SIZE:-medium}
     ports:
       - "8000:8000"
     depends_on:

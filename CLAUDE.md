@@ -4,8 +4,9 @@ Guidance for Claude Code (or any agent) working in this repo.
 
 ## What this project is
 
-ProcureCV is a real-time, multilingual (Hindi + English code-switching) Speech-to-Text
-web application with a database-backed transcription history dashboard (full CRUD).
+Speech to Text is a real-time, multilingual (Hindi + English code-switching)
+Speech-to-Text web application with a database-backed transcription history
+dashboard (full CRUD).
 It's being built as a coding assignment for a Procucev Enterprises hiring process —
 see `PLAN.md` for the full requirements breakdown and `TODO.md` for progress.
 Partial/incomplete features are acceptable per the assignment brief; prioritize a

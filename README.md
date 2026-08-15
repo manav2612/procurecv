@@ -1,4 +1,4 @@
-# ProcureCV
+# Speech to Text
 
 Real-time, multilingual (Hindi + English) Speech-to-Text web application with a
 transcription-history dashboard — built for the Procucev AI Tech hiring assignment.
@@ -12,8 +12,8 @@ minimal, editable visual map of the same architecture (open at
 [excalidraw.com](https://excalidraw.com) via File → Open, or the VS Code
 Excalidraw extension) — which files do what, the request/data flow, and the
 key design decisions (why VAD-based chunking, why one locked model instance,
-why `small` over `tiny`/`base`) as annotated sticky notes, not just a box
-diagram.
+why `medium` over `tiny`/`base`/`small`) as annotated sticky notes, not just a
+box diagram.
 
 ## Backend setup
 
@@ -134,8 +134,8 @@ different, less accurate model there.
 ### Primary: your own server
 
 ```bash
-git clone https://github.com/manav2612/procurecv.git
-cd procurecv
+git clone https://github.com/manav2612/speech-to-text.git
+cd speech-to-text
 docker compose up --build app
 ```
 
@@ -153,7 +153,7 @@ on Render, wired together automatically (`fromDatabase`).
 1. Push this repo to GitHub.
 2. In Render: **New -> Blueprint**, point it at the repo. Render reads
    `render.yaml` and shows you both resources it will create (the
-   `procurecv` web service and the `procurecv-db` database).
+   `speech-to-text` web service and the `speech-to-text-db` database).
 3. Click **Apply**. No env vars to fill in by hand.
 4. Render builds the `Dockerfile` and runs `alembic upgrade head`
    automatically on container start, creating the schema on first boot.

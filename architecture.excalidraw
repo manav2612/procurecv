@@ -29,14 +29,14 @@
       "updated": 1755000000000,
       "link": null,
       "locked": false,
-      "text": "ProcureCV — Architecture",
+      "text": "Speech to Text — Architecture",
       "fontSize": 28,
       "fontFamily": 2,
       "textAlign": "left",
       "verticalAlign": "top",
       "baseline": 25,
       "containerId": null,
-      "originalText": "ProcureCV — Architecture",
+      "originalText": "Speech to Text — Architecture",
       "lineHeight": 1.25
     },
     {
@@ -953,14 +953,14 @@
       "updated": 1755000000000,
       "link": null,
       "locked": false,
-      "text": "\"small\" Whisper model chosen over tiny/base\nafter benchmarking — the only one that reliably\noutputs correct Devanagari for Hindi.",
+      "text": "\"medium\" Whisper model chosen over tiny/base/small\nonce real hardware (self-hosted server) was available —\nbetter Hindi accuracy than the CPU-constrained default.",
       "fontSize": 13,
       "fontFamily": 2,
       "textAlign": "left",
       "verticalAlign": "top",
       "baseline": 11,
       "containerId": null,
-      "originalText": "\"small\" Whisper model chosen over tiny/base\nafter benchmarking — the only one that reliably\noutputs correct Devanagari for Hindi.",
+      "originalText": "\"medium\" Whisper model chosen over tiny/base/small\nonce real hardware (self-hosted server) was available —\nbetter Hindi accuracy than the CPU-constrained default.",
       "lineHeight": 1.25
     },
     {

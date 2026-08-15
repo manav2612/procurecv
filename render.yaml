@@ -15,14 +15,14 @@
 # app/config.py's normalize_database_url), so switching back to Neon or any
 # other provider later is just changing one env var, not a code change.
 databases:
-  - name: procurecv-db
-    databaseName: procurecv
-    user: procurecv
+  - name: speech-to-text-db
+    databaseName: speech_to_text
+    user: speech_to_text
     plan: free
 
 services:
   - type: web
-    name: procurecv
+    name: speech-to-text
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
@@ -31,14 +31,15 @@ services:
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: procurecv-db
+          name: speech-to-text-db
           property: connectionString
       # No WHISPER_MODEL_SIZE override here on purpose: the app's own default
-      # (`small`, in backend/app/stt.py) is used everywhere now — same value
+      # (`medium`, in backend/app/stt.py) is used everywhere now — same value
       # in local dev, docker-compose.yml, fly.toml, and here, so behavior
       # doesn't silently differ by host. Render's free tier (512MB RAM,
-      # heavily shared CPU) genuinely struggles to run `small` at a usable
-      # speed (confirmed: even the lighter `base` was too slow there) -- that
-      # tradeoff is now accepted and documented (README.md's "Known accuracy
-      # limitations" / "Hosting decision, honestly") rather than solved by
-      # quietly running a different, less accurate model only on this host.
+      # heavily shared CPU) genuinely struggles to run even `small`/`base` at
+      # a usable speed (confirmed) — `medium` needs more than that and will
+      # very likely fail to load at all. That's now an accepted, documented
+      # tradeoff of this host (README.md's "Known accuracy limitations" /
+      # "Hosting decision, honestly") rather than solved by quietly running a
+      # different, less accurate model only here.

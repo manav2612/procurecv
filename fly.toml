@@ -5,9 +5,9 @@
 # model. Fly gives dedicated (not shared) CPU/RAM per machine, sized
 # explicitly below, which is the actual fix for that problem.
 #
-# app name must be globally unique on Fly — if "procurecv" is taken, `fly
-# apps create <different-name>` and update this file's `app` line to match.
-app = "procurecv"
+# app name must be globally unique on Fly — if "speech-to-text" is taken,
+# `fly apps create <different-name>` and update this file's `app` line to match.
+app = "speech-to-text"
 primary_region = "iad"
 
 [build]

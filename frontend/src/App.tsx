@@ -10,7 +10,7 @@ function App() {
 
   return (
     <ToastProvider>
-      <h1>ProcureCV</h1>
+      <h1>Speech to Text</h1>
       <p className="hint">Real-time multilingual (Hindi/English) speech-to-text</p>
 
       <nav>

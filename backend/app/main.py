@@ -11,7 +11,7 @@ from app.routers import segments, sessions, transcribe
 # test suite fast and network-independent. It does mean the first real
 # transcription connection pays a one-time ~30-60s model-load cost.
 
-app = FastAPI(title="ProcureCV")
+app = FastAPI(title="Speech to Text")
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,4 +1,4 @@
-# ProcureCV — Implementation Plan
+# Speech to Text — Implementation Plan
 
 Source: `Procucev AI Tech Hiring Assignment.pdf` — Assignment 1: Real-time Transcription.
 

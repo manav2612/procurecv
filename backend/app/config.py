@@ -19,7 +19,7 @@ def normalize_database_url(url: str) -> str:
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    database_url: str = "postgresql+psycopg2://procurecv:procurecv@localhost:5432/procurecv"
+    database_url: str = "postgresql+psycopg2://speech_to_text:speech_to_text@localhost:5432/speech_to_text"
 
     @field_validator("database_url")
     @classmethod

@@ -1,4 +1,4 @@
-# ProcureCV frontend
+# Speech to Text frontend
 
 React + TypeScript (Vite). Live mic-based transcription UI — see the
 top-level `README.md` for the full project and `PLAN.md`/`TODO.md` for
