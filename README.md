@@ -114,23 +114,34 @@ container on http://localhost:8000 (see `Dockerfile`: a Node stage builds
 in `app/main.py`). This is what actually gets deployed; the split
 `uvicorn --reload` + `npm run dev` setup above is just for day-to-day dev.
 
-## Deploying (Render + Neon, both free, no card required)
+## Deploying (Render, free, no card required)
 
-1. **Database — [Neon](https://neon.tech)**: create a free project, copy its
-   connection string (the `postgresql://...` one, not the pooled variant —
-   psycopg2 doesn't need pooling for this app's traffic). It should look like
-   `postgresql://<user>:<password>@<host>/<db>?sslmode=require`.
-2. **Web service — [Render](https://render.com)**: push this repo to GitHub,
-   then in Render either apply [`render.yaml`](./render.yaml) as a Blueprint
-   (New -> Blueprint, point at the repo) or create a Web Service manually
-   with runtime "Docker" and the same settings it describes.
-3. In the Render dashboard, set the `DATABASE_URL` env var to the Neon
-   connection string from step 1 (`render.yaml` deliberately leaves it unset
-   — `sync: false` — since it's a secret, not something to commit).
-4. Deploy. Render builds the `Dockerfile` and runs `alembic upgrade head`
-   automatically on container start (see the `Dockerfile`'s `CMD`), so the
-   schema gets created against Neon on first boot — no separate migration
-   step needed.
+`render.yaml` provisions both the web service **and** a Postgres database
+on Render, and wires them together automatically (`fromDatabase` in the env
+var config) — no connection string to copy-paste anywhere.
+
+1. Push this repo to GitHub.
+2. In Render: **New -> Blueprint**, point it at the repo. Render reads
+   `render.yaml` and shows you both resources it will create (the
+   `procurecv` web service and the `procurecv-db` database).
+3. Click **Apply**. That's it — no env vars to fill in by hand.
+4. Render builds the `Dockerfile` and runs `alembic upgrade head`
+   automatically on container start, creating the schema on first boot.
+
+*(Earlier version of this doc walked through creating a separate Neon
+database and manually pasting its connection string into Render. That hit a
+real, never-fully-explained issue where Render's dashboard showed the env
+var as set but it never reached the running container. Render's own
+auto-wired database sidesteps that failure mode entirely instead of
+continuing to debug it. The app now normalizes either `postgres://...` or
+`postgresql://...` connection strings — see `app/config.py`'s
+`normalize_database_url` — so switching to Neon or any other provider later
+is just changing one env var, not a code change.)*
+
+**Tradeoff**: Render's free Postgres plan expires after 30 days and needs
+recreating (or upgrading) after that — unlike Neon, which doesn't expire.
+Fine for getting a working submission live now; worth revisiting for
+anything longer-lived.
 
 **Why `render.yaml` sets `WHISPER_MODEL_SIZE=base` instead of the app's own
 `small` default**: Render's free plan gives 512MB RAM, and `small` needs
@@ -141,19 +152,18 @@ or a different host), remove that override so it falls back to `small`.
 
 **Expect a slow first request after any idle period**: Render's free plan
 spins the container down after ~15 minutes of inactivity (cold start ~30-60s
-on the next request), Neon auto-suspends similarly, and the Whisper model
-itself is lazy-loaded on the first WebSocket message (another ~30-60s the
-very first time, less once the model is cached). Stacked together, the
-first real interaction after a period of inactivity could take a minute or
-two before it feels responsive — normal for this setup, not a bug.
+on the next request), and the Whisper model itself is lazy-loaded on the
+first WebSocket message (another ~30-60s the very first time, less once the
+model is cached). Stacked together, the first real interaction after a
+period of inactivity could take a minute or two before it feels responsive
+— normal for this setup, not a bug.
 
-**Not yet verified**: I don't have Render/Neon accounts or credentials, so
-this config is prepared and validated as thoroughly as possible from here
-(Dockerfile logic verified by running the equivalent single-service setup
-locally without Docker — see "Serve built frontend from FastAPI" — plus
-YAML/schema validation of `render.yaml` and `docker-compose.yml`), but the
-actual deploy has to be run by you. Please report back what you find so this
-can be fixed forward if something doesn't work as expected.
+**Verification status**: the backend-to-Postgres path is fully verified for
+real (see `TODO.md` Phase 7) — migration and a full CRUD round-trip ran
+successfully against a live database. What's unverified from this end is
+the actual Render container serving real traffic end-to-end, since I don't
+have a Render account — that part has to be confirmed by whoever runs the
+deploy.
 
 ## Status
 

@@ -1,3 +1,25 @@
+# Postgres is provisioned by Render itself and wired into the web service
+# below automatically (envVars.fromDatabase) — no manual copy-pasting of a
+# connection string required, and therefore no way to paste it into the
+# wrong place or the wrong environment. This replaced an earlier design that
+# used an external Neon database with a manually-set DATABASE_URL, which hit
+# a real, never-fully-explained Render env var propagation issue (the value
+# was confirmed set in the dashboard but never reached the running
+# container). Switching to a Render-native, auto-wired database sidesteps
+# that whole failure mode rather than continuing to debug it.
+#
+# Tradeoff, stated plainly: Render's free Postgres plan expires after 30
+# days and needs to be recreated (or upgraded) after that — unlike Neon,
+# which doesn't expire. The app's DATABASE_URL handling now normalizes
+# either a plain postgres://... or postgresql+psycopg2://... URL (see
+# app/config.py's normalize_database_url), so switching back to Neon or any
+# other provider later is just changing one env var, not a code change.
+databases:
+  - name: procurecv-db
+    databaseName: procurecv
+    user: procurecv
+    plan: free
+
 services:
   - type: web
     name: procurecv
@@ -8,7 +30,9 @@ services:
     healthCheckPath: /api/health
     envVars:
       - key: DATABASE_URL
-        sync: false # set manually in the Render dashboard — your Neon connection string
+        fromDatabase:
+          name: procurecv-db
+          property: connectionString
       - key: WHISPER_MODEL_SIZE
         value: base # Render's free plan has 512MB RAM; `small` (the app's own default,
         # chosen for Hindi accuracy — see PLAN.md) needs more than that and will likely

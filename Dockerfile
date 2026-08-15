@@ -34,4 +34,4 @@ EXPOSE 8000
 # issue is resolved): logs whether DATABASE_URL is present and looks like a
 # real Postgres URL, WITHOUT ever printing the value itself — just presence,
 # length, and a substring check — so it's safe to leave in Render's logs.
-CMD ["sh", "-c", "echo \"[startup] DATABASE_URL: set=$([ -n \"$DATABASE_URL\" ] && echo yes || echo no) len=${#DATABASE_URL} looks_postgres=$(echo \"$DATABASE_URL\" | grep -qE '^postgresql' && echo yes || echo no)\"; alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "echo \"[startup] DATABASE_URL: set=$([ -n \"$DATABASE_URL\" ] && echo yes || echo no) len=${#DATABASE_URL} looks_postgres=$(echo \"$DATABASE_URL\" | grep -qE '^postgres' && echo yes || echo no)\"; alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

@@ -10,7 +10,7 @@ from alembic import context
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import models  # noqa: E402,F401
-from app.config import settings  # noqa: E402
+from app.config import normalize_database_url, settings  # noqa: E402
 from app.database import Base  # noqa: E402
 
 # this is the Alembic Config object, which provides
@@ -22,9 +22,14 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Prefer the app's DATABASE_URL (env var / .env) over the static value in alembic.ini
+# Prefer the app's DATABASE_URL (env var / .env) over the static value in
+# alembic.ini. Reads the env var directly rather than via Settings, so it
+# needs the same postgres:// -> postgresql+psycopg2:// normalization applied
+# explicitly (Settings' field_validator only runs for values pydantic itself
+# reads).
 config.set_main_option(
-    "sqlalchemy.url", os.environ.get("DATABASE_URL", settings.database_url)
+    "sqlalchemy.url",
+    normalize_database_url(os.environ.get("DATABASE_URL", settings.database_url)),
 )
 
 target_metadata = Base.metadata
